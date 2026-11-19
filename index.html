@@ -416,122 +416,96 @@
   </div>
 
   <script>
-    const tabMedia = document.getElementById('tab-media');
-    const tabCalc = document.getElementById('tab-calc');
-    const sectionMedia = document.getElementById('section-media');
-    const sectionCalc = document.getElementById('section-calc');
+  const tabMedia = document.getElementById('tab-media');
+  const tabCalc = document.getElementById('tab-calc');
+  const sectionMedia = document.getElementById('section-media');
+  const sectionCalc = document.getElementById('section-calc');
 
+  if (tabMedia && tabCalc && sectionMedia && sectionCalc) {
     tabMedia.addEventListener('click', () => {
-      tabMedia.classList.add('active'); tabMedia.setAttribute('aria-selected', 'true');
-      tabCalc.classList.remove('active'); tabCalc.setAttribute('aria-selected', 'false');
-      sectionMedia.classList.remove('hidden'); sectionCalc.classList.add('hidden');
+      tabMedia.classList.add('active');
+      tabMedia.setAttribute('aria-selected', 'true');
+      tabCalc.classList.remove('active');
+      tabCalc.setAttribute('aria-selected', 'false');
+      sectionMedia.classList.remove('hidden');
+      sectionCalc.classList.add('hidden');
     });
 
     tabCalc.addEventListener('click', () => {
-      tabCalc.classList.add('active'); tabCalc.setAttribute('aria-selected', 'true');
-      tabMedia.classList.remove('active'); tabMedia.setAttribute('aria-selected', 'false');
-      sectionCalc.classList.remove('hidden'); sectionMedia.classList.add('hidden');
+      tabCalc.classList.add('active');
+      tabCalc.setAttribute('aria-selected', 'true');
+      tabMedia.classList.remove('active');
+      tabMedia.setAttribute('aria-selected', 'false');
+      sectionCalc.classList.remove('hidden');
+      sectionMedia.classList.add('hidden');
     });
+  }
 
-    function formatKB(bytes) {
-      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-      return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  // Age Calculator
+  const ageDob = document.getElementById('age-dob');
+  const ageResult = document.getElementById('age-result');
+
+  function updateAge() {
+    if (!ageDob || !ageResult) return;
+    if (!ageDob.value) {
+      ageResult.textContent = '';
+      return;
+    }
+    const dob = new Date(ageDob.value + 'T00:00:00');
+    const now = new Date();
+    if (isNaN(dob.getTime()) || dob > now) {
+      ageResult.textContent = 'Please enter a valid past date of birth.';
+      return;
     }
 
-    function escapeHtml(str) {
-      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    let years = now.getFullYear() - dob.getFullYear();
+    let months = now.getMonth() - dob.getMonth();
+    let days = now.getDate() - dob.getDate();
+
+    if (days < 0) {
+      months -= 1;
+      const prevMonthDays = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+      days += prevMonthDays;
+    }
+    if (months < 0) {
+      years -= 1;
+      months += 12;
     }
 
-    function readImageFile(file) {
-      return new Promise((resolve, reject) => {
-        const url = URL.createObjectURL(file);
-        const img = new Image();
-        img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
-        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not read image: ' + file.name)); };
-        img.src = url;
-      });
+    ageResult.textContent = `Age: ${years} years, ${months} months, ${days} days`;
+  }
+
+  if (ageDob) {
+    ageDob.addEventListener('change', updateAge);
+    ageDob.addEventListener('input', updateAge);
+  }
+
+  // Zakat Calculator (2.5% of net zakatable assets)
+  const zakatCash = document.getElementById('zakat-cash');
+  const zakatGold = document.getElementById('zakat-gold');
+  const zakatDebts = document.getElementById('zakat-debts');
+  const zakatResult = document.getElementById('zakat-result');
+
+  function updateZakat() {
+    if (!zakatResult) return;
+    const cash = parseFloat(zakatCash && zakatCash.value ? zakatCash.value : '0') || 0;
+    const gold = parseFloat(zakatGold && zakatGold.value ? zakatGold.value : '0') || 0;
+    const debts = parseFloat(zakatDebts && zakatDebts.value ? zakatDebts.value : '0') || 0;
+
+    const netAssets = Math.max(0, cash + gold - debts);
+    const zakatDue = netAssets * 0.025;
+
+    zakatResult.textContent = `Net Zakatable Assets: ${netAssets.toFixed(2)} | Zakat (2.5%): ${zakatDue.toFixed(2)}`;
+  }
+
+  [zakatCash, zakatGold, zakatDebts].forEach((input) => {
+    if (input) {
+      input.addEventListener('input', updateZakat);
+      input.addEventListener('change', updateZakat);
     }
+  });
+</script>
+</body>
+</html>
 
-    // IMAGE COMPRESSOR
-    const imgDropzone = document.getElementById('img-dropzone');
-    const imgInput = document.getElementById('img-input');
-    const imgQuality = document.getElementById('img-quality');
-    const imgQualityVal = document.getElementById('img-quality-val');
-    const imgMaxWidth = document.getElementById('img-max-width');
-    const imgFormat = document.getElementById('img-format');
-    const btnCompressAll = document.getElementById('btn-compress-all');
-    const compressedList = document.getElementById('compressed-list');
-    let selectedCompressFiles = [];
-
-    imgQuality.addEventListener('input', () => { imgQualityVal.textContent = imgQuality.value + '%'; });
-    imgDropzone.addEventListener('click', () => imgInput.click());
-    imgDropzone.addEventListener('dragover', (e) => { e.preventDefault(); imgDropzone.classList.add('dragover'); });
-    imgDropzone.addEventListener('dragleave', () => imgDropzone.classList.remove('dragover'));
-    imgDropzone.addEventListener('drop', (e) => {
-      e.preventDefault(); imgDropzone.classList.remove('dragover');
-      selectedCompressFiles = Array.from(e.dataTransfer.files || []).filter(f => f.type.startsWith('image/'));
-      renderCompressPreview();
-    });
-    imgInput.addEventListener('change', () => {
-      selectedCompressFiles = Array.from(imgInput.files || []).filter(f => f.type.startsWith('image/'));
-      renderCompressPreview();
-    });
-
-    function renderCompressPreview() {
-      compressedList.innerHTML = '';
-      selectedCompressFiles.forEach((file) => {
-        const div = document.createElement('div');
-        div.className = 'file-item';
-        div.innerHTML = `<div class="file-meta"><div class="file-name">${escapeHtml(file.name)}</div><div class="file-sizes">Original: ${formatKB(file.size)} — Ready</div></div>`;
-        compressedList.appendChild(div);
-      });
-    }
-
-    btnCompressAll.addEventListener('click', async () => {
-      if (!selectedCompressFiles.length) return alert('Please select at least one image first.');
-      compressedList.innerHTML = '';
-      const quality = Math.min(0.95, Math.max(0.1, Number(imgQuality.value) / 100));
-      const maxW = Number(imgMaxWidth.value) || 0;
-      const mime = imgFormat.value;
-      const ext = mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : 'jpg';
-
-      for (const file of selectedCompressFiles) {
-        const img = await readImageFile(file);
-        let targetW = img.naturalWidth, targetH = img.naturalHeight;
-        if (maxW > 0 && targetW > maxW) {
-          targetH = Math.round((targetH * maxW) / targetW);
-          targetW = maxW;
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = targetW; canvas.height = targetH;
-        const ctx = canvas.getContext('2d');
-        if (mime === 'image/jpeg') { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, targetW, targetH); }
-        ctx.drawImage(img, 0, 0, targetW, targetH);
-        const blob = await new Promise((res) => canvas.toBlob(res, mime, quality));
-        if (!blob) continue;
-
-        const outUrl = URL.createObjectURL(blob);
-        const outName = `${file.name.replace(/\.[^/.]+$/, '')}-compressed.${ext}`;
-        const pctSaved = file.size > 0 ? Math.round(((file.size - blob.size) / file.size) * 100) : 0;
-        const row = document.createElement('div');
-        row.className = 'file-item';
-        row.innerHTML = `
-          <div class="file-meta">
-            <div class="file-name">${escapeHtml(outName)}</div>
-            <div class="file-sizes">${formatKB(file.size)} → <strong>${formatKB(blob.size)}</strong> ${pctSaved > 0 ? `<span class="saved-tag">(-${pctSaved}%)</span>` : ''}</div>
-          </div>
-          <a class="btn btn-secondary btn-sm" href="${outUrl}" download="${escapeHtml(outName)}">Download</a>
-        `;
-        compressedList.appendChild(row);
-      }
-    });
-
-    // UPGRADED SELF-CONTAINED JPEG-TO-PDF BUILDER
-    const pdfDropzone = document.getElementById('pdf-dropzone');
-    const pdfImgInput = document.getElementById('pdf-img-input');
-    const pdfPageSize = document.getElementById('pdf-page-size');
-    const btnMakePdf = document.getElementById('btn-make-pdf');
-    const pdfSelectedSummary = document.getElementById('pdf-selected-summary');
-    const pdfStatus = document.getElementById('pdf-status');
-    const pdfDownloadArea = document.getElementById('pdf-download-area');
-    let pdfFi
+    
