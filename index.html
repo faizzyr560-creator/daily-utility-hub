@@ -453,12 +453,15 @@
   }
 
   // Image Compressor & Resizer
+    // Image Compressor & Resizer
   const imgDropzone = document.getElementById('img-dropzone');
   const imgInput = document.getElementById('img-input');
   const imgQuality = document.getElementById('img-quality');
   const imgMaxWidth = document.getElementById('img-max-width');
   const imgFormat = document.getElementById('img-format');
-  const btnCompress = document.getElementById('btn-compress');
+  const btnCompress =
+    document.getElementById('btn-compress') ||
+    document.querySelector('#section-media button[id*="compress"]');
   const compressedList = document.getElementById('compressed-list');
   let selectedCompressFiles = [];
 
@@ -466,11 +469,14 @@
     imgDropzone.addEventListener('click', () => imgInput.click());
     imgInput.addEventListener('change', (e) => {
       selectedCompressFiles = Array.from(e.target.files || []);
-      if (compressedList && selectedCompressFiles.length > 0) {
-        compressedList.innerHTML = `<div class="hint">${selectedCompressFiles.length} image(s) selected. Click Compress to process.</div>`;
+      if (compressedList) {
+        compressedList.innerHTML = selectedCompressFiles.length
+          ? `<div class="hint">${selectedCompressFiles.length} image(s) selected. Click Compress to process.</div>`
+          : '';
       }
     });
   }
+    
 
   function loadImageFromFile(file) {
     return new Promise((resolve, reject) => {
